@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Superherooo",
+    "slug": "superheroo",
+    "version": "1.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/superheroo-logo.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/superheroo-logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1E3A8A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Superherooo uses the microphone to capture your task details by voice."
+      }
+    },
+    "android": {
+      "package": "com.helpinminutes.app",
+      "versionCode": 10,
+      "usesCleartextTraffic": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/superheroo-logo.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "RECORD_AUDIO"
+      ],
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

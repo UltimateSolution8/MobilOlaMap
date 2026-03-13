@@ -1,0 +1,421 @@
+{
+  "auditDate": "2026-03-06",
+  "repoUrl": "https://github.com/UltimateSolution8/superheroMobil",
+  "localPath": "/Volumes/PortableSSD/Developer/HelpInMinutes/apps/mobile",
+  "framework": "React Native 0.81.5 + Expo SDK 54",
+  "summary": "The app has a solid TypeScript foundation and clean component architecture, but lacks critical performance optimizations, testing, CI/CD, and monitoring for production readiness.",
+
+  "critical": [
+    {
+      "id": "C01",
+      "severity": "critical",
+      "category": "rendering",
+      "title": "MapView re-renders on every unrelated state change",
+      "files": [
+        "src/screens/buyer/BuyerHomeScreen.tsx:421-448",
+        "src/screens/buyer/BuyerTaskScreen.tsx:343-368",
+        "src/screens/helper/HelperTaskScreen.tsx:613-631"
+      ],
+      "description": "MapView is embedded inside large stateful components with 15+ useState hooks. Any state change (typing, OTP entry, voice) triggers full re-render including MapView, causing jank and dropped frames on mid-range devices.",
+      "fix": "Extract MapView into a React.memo'd wrapper component. Pass only coordinates and markers as props. Use stable references for marker data.",
+      "difficulty": "medium",
+      "impact": "high"
+    },
+    {
+      "id": "C02",
+      "severity": "critical",
+      "category": "rendering",
+      "title": "BuyerHomeScreen has 15+ useState hooks causing cascading re-renders",
+      "files": ["src/screens/buyer/BuyerHomeScreen.tsx:43-62"],
+      "description": "The form screen manages title, description, address, search, suggestions, voice, location, budget, urgency, and UI state all as separate useState calls. Any keystroke re-renders the entire component tree including MapView and suggestions list.",
+      "fix": "Group related state with useReducer or a form library. Isolate the map section into a memoized child component.",
+      "difficulty": "medium",
+      "impact": "high"
+    },
+    {
+      "id": "C03",
+      "severity": "critical",
+      "category": "rendering",
+      "title": "HelperTaskScreen is 841 lines with nested ScrollView containing MapView",
+      "files": ["src/screens/helper/HelperTaskScreen.tsx"],
+      "description": "Massive monolithic screen with task loading, selfie capture, OTP entry, location tracking, route fetching, rating, cancellation, and celebration modal all in one component. Every state update re-renders everything.",
+      "fix": "Split into sub-components: MapSection, TaskStatusCard, SelfieCapture, RatingCard, CelebrationModal. Wrap each with React.memo.",
+      "difficulty": "large",
+      "impact": "high"
+    },
+    {
+      "id": "C04",
+      "severity": "critical",
+      "category": "maps",
+      "title": "BuyerHomeScreen sets controlled `region` prop causing map jumpiness",
+      "files": ["src/screens/buyer/BuyerHomeScreen.tsx:433-442"],
+      "description": "The MapView has both `initialRegion` and `region` set. The `region` prop is recalculated from state on every render, overriding user pan/zoom and causing jumpy behavior.",
+      "fix": "Remove the controlled `region` prop. Use `mapRef.animateToRegion()` for programmatic region changes only when coordinates actually change.",
+      "difficulty": "small",
+      "impact": "high"
+    },
+    {
+      "id": "C05",
+      "severity": "critical",
+      "category": "testing",
+      "title": "Zero test files — no unit, integration, or E2E tests",
+      "files": ["package.json"],
+      "description": "No testing framework configured. No jest.config, no test scripts, no __tests__ directory. This means zero confidence in any refactoring.",
+      "fix": "Add jest + @testing-library/react-native. Create test scaffold. Add E2E with Detox/Maestro.",
+      "difficulty": "medium",
+      "impact": "critical"
+    },
+    {
+      "id": "C06",
+      "severity": "critical",
+      "category": "infra",
+      "title": "No CI/CD pipeline",
+      "files": [],
+      "description": "No GitHub Actions, no fastlane, no automated builds. Manual deployments are error-prone and don't catch regressions.",
+      "fix": "Add GitHub Actions workflow for lint, typecheck, and test on PRs. Add build scripts for Android/iOS.",
+      "difficulty": "medium",
+      "impact": "critical"
+    },
+    {
+      "id": "C07",
+      "severity": "critical",
+      "category": "monitoring",
+      "title": "No crash reporting or performance monitoring",
+      "files": [],
+      "description": "No Sentry, no Firebase Performance, no Bugsnag. Crashes in production will be invisible.",
+      "fix": "Add @sentry/react-native with error boundaries. Add Firebase Performance for startup and network metrics.",
+      "difficulty": "medium",
+      "impact": "critical"
+    },
+    {
+      "id": "C08",
+      "severity": "critical",
+      "category": "performance",
+      "title": "Duplicated polyline decoding function — inlined in two files",
+      "files": [
+        "src/screens/buyer/BuyerTaskScreen.tsx:46-82",
+        "src/screens/helper/HelperTaskScreen.tsx:520-574"
+      ],
+      "description": "Polyline decoding (~60 lines) is copy-pasted in two screen files. The HelperTaskScreen version is inlined inside a useEffect and re-parses on every render cycle where dependencies change.",
+      "fix": "Extract to a shared `src/utils/geo.ts` utility. Import in both screens.",
+      "difficulty": "small",
+      "impact": "medium"
+    },
+    {
+      "id": "C09",
+      "severity": "critical",
+      "category": "performance",
+      "title": "Duplicated distanceMeters utility function in two files",
+      "files": [
+        "src/screens/buyer/BuyerTaskScreen.tsx:33-44",
+        "src/screens/helper/HelperTaskScreen.tsx:47-58"
+      ],
+      "description": "Haversine distance calculation is duplicated across two screen files.",
+      "fix": "Extract to `src/utils/geo.ts` and import.",
+      "difficulty": "small",
+      "impact": "low"
+    },
+    {
+      "id": "C10",
+      "severity": "critical",
+      "category": "socket",
+      "title": "SocketProvider creates new socket on every token change without cleanup race guard",
+      "files": ["src/realtime/SocketProvider.tsx:15-34"],
+      "description": "When accessToken changes (e.g., on refresh), the old socket disconnects and a new one is created. The eslint-disable comment suggests the dependency array was intentionally trimmed, but this can cause orphaned socket references in state if the effect fires rapidly.",
+      "fix": "Add proper cleanup. Store socket in a ref. Only recreate if auth status actually transitions. Add reconnect/backoff.",
+      "difficulty": "medium",
+      "impact": "high"
+    },
+    {
+      "id": "C11",
+      "severity": "critical",
+      "category": "rendering",
+      "title": "HistoryScreen FlatList row is not memoized — inline renderItem",
+      "files": ["src/screens/common/HistoryScreen.tsx:76-83"],
+      "description": "The renderItem callback creates new JSX inline on every render. No React.memo wrapper on the row component. With many tasks, this causes FlatList to re-render all visible rows on any state change.",
+      "fix": "Extract a memoized HistoryRow component. Use stable renderItem and keyExtractor.",
+      "difficulty": "small",
+      "impact": "medium"
+    },
+    {
+      "id": "C12",
+      "severity": "critical",
+      "category": "images",
+      "title": "No image caching — using raw <Image> and react-native-image-picker without cache",
+      "files": [
+        "src/screens/helper/HelperTaskScreen.tsx:204-280",
+        "src/utils/media.ts"
+      ],
+      "description": "Selfie images are not cached after capture. No react-native-fast-image or expo-image. Screen transitions will reload images from disk or from remote URLs, causing flicker.",
+      "fix": "Use expo-image (Expo-compatible FastImage alternative) for displaying cached images. Add preview immediately after capture.",
+      "difficulty": "medium",
+      "impact": "medium"
+    },
+    {
+      "id": "C13",
+      "severity": "critical",
+      "category": "performance",
+      "title": "No skeleton/placeholder loaders — full-screen ActivityIndicator used",
+      "files": [
+        "src/navigation/AppNavigator.tsx:46-52",
+        "src/screens/buyer/BuyerTaskScreen.tsx",
+        "src/screens/helper/HelperTaskScreen.tsx"
+      ],
+      "description": "Loading states show bare text or nothing. No content placeholders. This creates perceived jank during data loading.",
+      "fix": "Add SkeletonPlaceholder components for task cards, map areas, and list items.",
+      "difficulty": "small",
+      "impact": "medium"
+    },
+    {
+      "id": "C14",
+      "severity": "critical",
+      "category": "animation",
+      "title": "No Reanimated — celebration modal/acceptance uses no native animation",
+      "files": [
+        "src/screens/buyer/BuyerTaskScreen.tsx:430-444",
+        "src/screens/helper/HelperTaskScreen.tsx:708-722"
+      ],
+      "description": "The celebration/completion modal appears with no animation. No marker pop animations. No native-driven transitions. This feels jarring on task state changes.",
+      "fix": "Add react-native-reanimated. Use entering/exiting animations for modals. AnimatedRegion for markers.",
+      "difficulty": "large",
+      "impact": "medium"
+    },
+    {
+      "id": "C15",
+      "severity": "critical",
+      "category": "performance",
+      "title": "Google Places API called directly from client — no debounce on autocomplete",
+      "files": ["src/screens/buyer/BuyerHomeScreen.tsx:244-269, 271-281"],
+      "description": "Place autocomplete fires on a 350ms setTimeout per keystroke without proper debounce. Rapid typing creates multiple inflight requests that race. This also exposes the API key in client-side requests.",
+      "fix": "Use proper debounce (lodash.debounce or AbortController). Consider proxying through backend to hide API key.",
+      "difficulty": "small",
+      "impact": "medium"
+    }
+  ],
+
+  "medium": [
+    {
+      "id": "M01",
+      "severity": "medium",
+      "category": "architecture",
+      "title": "No global state management — entirely Context-based with prop drilling",
+      "files": ["src/state/ActiveTaskContext.tsx", "src/state/HelperPresenceContext.tsx", "src/auth/AuthContext.tsx"],
+      "description": "State is spread across three Context providers. Any context value change re-renders all consumers. No selector pattern to prevent unneeded renders.",
+      "fix": "Migrate to Zustand or Redux Toolkit with selective subscriptions. Keep Context for simple auth state.",
+      "difficulty": "large",
+      "impact": "medium"
+    },
+    {
+      "id": "M02",
+      "severity": "medium",
+      "category": "socket",
+      "title": "Socket events not debounced — rapid task_status_changed events cause cascading renders",
+      "files": [
+        "src/screens/buyer/BuyerTaskScreen.tsx:146-195",
+        "src/screens/helper/HelperTaskScreen.tsx:119-135"
+      ],
+      "description": "Socket event handlers call setTask/setHelperLoc immediately. Burst events (e.g., helper moving fast) will trigger multiple state updates in quick succession.",
+      "fix": "Batch socket updates using requestAnimationFrame or a short debounce. Use functional state updates consistently.",
+      "difficulty": "small",
+      "impact": "medium"
+    },
+    {
+      "id": "M03",
+      "severity": "medium",
+      "category": "performance",
+      "title": "BuyerTaskScreen Direction API route fetch fires on every helperLoc change",
+      "files": ["src/screens/buyer/BuyerTaskScreen.tsx:197-227"],
+      "description": "The useEffect for route fetching depends on `helperLoc` and `task`. While there is a 12s throttle, the dependency array means the effect recreates on every location update, creating unnecessary work.",
+      "fix": "Move the route fetch interval into a separate ref-based approach. Only fire when helperLoc changes significantly (>50m).",
+      "difficulty": "small",
+      "impact": "medium"
+    },
+    {
+      "id": "M04",
+      "severity": "medium",
+      "category": "performance",
+      "title": "helperLastSeen memo uses Date.now() but never updates — stale data",
+      "files": ["src/screens/buyer/BuyerTaskScreen.tsx:269-273"],
+      "description": "The useMemo for `helperLastSeen` calls Date.now() only when `helperLoc` changes. Between location updates, the displayed 'updated X seconds ago' value is frozen.",
+      "fix": "Use a setInterval to update the 'last seen' timer every few seconds, or display the absolute time.",
+      "difficulty": "small",
+      "impact": "low"
+    },
+    {
+      "id": "M05",
+      "severity": "medium",
+      "category": "security",
+      "title": "Google Maps API key exposed in client-side fetch URLs",
+      "files": [
+        "src/screens/buyer/BuyerHomeScreen.tsx:214-218",
+        "src/screens/buyer/BuyerTaskScreen.tsx:205-209",
+        "src/screens/helper/HelperTaskScreen.tsx:528-532"
+      ],
+      "description": "The GOOGLE_MAPS_API_KEY is sent directly in client-side fetch URLs to googleapis.com. While Android/iOS keys can be restricted by bundle ID, the key is still extractable from network traffic.",
+      "fix": "Restrict the key by bundle identifier in Google Cloud Console. Consider proxying through your backend for Places/Directions.",
+      "difficulty": "small",
+      "impact": "medium"
+    },
+    {
+      "id": "M06",
+      "severity": "medium",
+      "category": "rendering",
+      "title": "BuyerTaskScreen is not split — 577 lines with map + status + rating + cancel all in one",
+      "files": ["src/screens/buyer/BuyerTaskScreen.tsx"],
+      "description": "Similar to HelperTaskScreen: massive monolithic component, but slightly smaller. Still causes unnecessary re-renders of map when typing in cancel/rating fields.",
+      "fix": "Extract MapSection, StatusCard, RatingCard, CancelSection into memoized sub-components.",
+      "difficulty": "medium",
+      "impact": "medium"
+    },
+    {
+      "id": "M07",
+      "severity": "medium",
+      "category": "performance",
+      "title": "Double load() calls — useEffect + useFocusEffect both fire on mount",
+      "files": [
+        "src/screens/buyer/BuyerTaskScreen.tsx:135-143",
+        "src/screens/helper/HelperTaskScreen.tsx:108-117",
+        "src/screens/common/HistoryScreen.tsx:36-45"
+      ],
+      "description": "Both useEffect and useFocusEffect call load() on mount, resulting in duplicate API requests on first render.",
+      "fix": "Remove the useEffect load() call and rely only on useFocusEffect, which fires on both mount and re-focus.",
+      "difficulty": "small",
+      "impact": "low"
+    },
+    {
+      "id": "M08",
+      "severity": "medium",
+      "category": "infra",
+      "title": "No ESLint config — only basic TypeScript checking",
+      "files": ["tsconfig.json"],
+      "description": "No .eslintrc, no prettier config. Code style is maintained manually. No automated linting in dev workflow or CI.",
+      "fix": "Add @typescript-eslint, eslint-config-@react-native, prettier, and lint scripts.",
+      "difficulty": "small",
+      "impact": "medium"
+    },
+    {
+      "id": "M09",
+      "severity": "medium",
+      "category": "performance",
+      "title": "No InteractionManager usage for deferring non-critical work",
+      "files": ["src/screens/buyer/BuyerHomeScreen.tsx", "src/screens/helper/HelperHomeScreen.tsx"],
+      "description": "Heavy operations like location resolution, autocomplete fetching, and storage I/O run immediately without deferring via InteractionManager.runAfterInteractions.",
+      "fix": "Wrap non-critical operations (analytics, storage persistence, address resolution) with InteractionManager.",
+      "difficulty": "small",
+      "impact": "low"
+    },
+    {
+      "id": "M10",
+      "severity": "medium",
+      "category": "ux",
+      "title": "No offline retry/queue for selfie uploads — error shown and lost",
+      "files": ["src/screens/helper/HelperTaskScreen.tsx:282-356"],
+      "description": "If selfie upload fails, the captured image is discarded. The user must re-capture. No retry queue or offline support.",
+      "fix": "Cache the captured image and implement a retry queue. Show the cached preview immediately while uploading in background.",
+      "difficulty": "medium",
+      "impact": "medium"
+    }
+  ],
+
+  "prs": [
+    {
+      "branch": "perf/quick-wins",
+      "title": "PR1: Memoization, FlatList optimizations, and skeleton loaders",
+      "summary": "Wrap heavy screen sections with React.memo, extract memoized row components, add skeleton placeholders during loading, fix double API calls on mount.",
+      "files": [
+        "MODIFY: src/screens/buyer/BuyerHomeScreen.tsx",
+        "MODIFY: src/screens/buyer/BuyerTaskScreen.tsx",
+        "MODIFY: src/screens/helper/HelperHomeScreen.tsx",
+        "MODIFY: src/screens/helper/HelperTaskScreen.tsx",
+        "MODIFY: src/screens/common/HistoryScreen.tsx",
+        "NEW: src/ui/SkeletonPlaceholder.tsx",
+        "NEW: src/ui/TaskSkeleton.tsx",
+        "NEW: __tests__/HistoryRow.test.tsx",
+        "NEW: __tests__/setupTests.ts"
+      ],
+      "tests": ["Jest: HistoryRow memoization", "Jest: SkeletonPlaceholder renders"],
+      "acceptance": ["FlatList rows re-render < 2x on store update", "Skeleton shows during loading states", "No double API call on mount"]
+    },
+    {
+      "branch": "perf/maps",
+      "title": "PR2: Map performance — memoized wrapper, throttled region, animated markers",
+      "summary": "Extract MapView into MemoizedMapView wrapper, throttle region changes, remove controlled region prop, use AnimatedRegion for helper marker, extract shared geo utilities.",
+      "files": [
+        "MODIFY: src/screens/buyer/BuyerHomeScreen.tsx",
+        "MODIFY: src/screens/buyer/BuyerTaskScreen.tsx",
+        "MODIFY: src/screens/helper/HelperTaskScreen.tsx",
+        "NEW: src/ui/MemoizedMapView.tsx",
+        "NEW: src/utils/geo.ts",
+        "NEW: __tests__/geo.test.ts",
+        "NEW: __tests__/MemoizedMapView.test.tsx"
+      ],
+      "tests": ["Jest: decodePolyline correctness", "Jest: distanceMeters accuracy", "Jest: MemoizedMapView skips re-render"],
+      "acceptance": ["Map does not re-render on text input", "Marker moves smoothly via AnimatedRegion", "MapView re-renders < 2x per second"]
+    },
+    {
+      "branch": "perf/images",
+      "title": "PR3: Image caching, compression, and upload queue",
+      "summary": "Add expo-image for cached display, compress selfies before upload, implement background upload queue with retry.",
+      "files": [
+        "MODIFY: src/screens/helper/HelperTaskScreen.tsx",
+        "MODIFY: src/utils/media.ts",
+        "MODIFY: package.json",
+        "NEW: src/utils/uploadQueue.ts",
+        "NEW: __tests__/uploadQueue.test.ts"
+      ],
+      "tests": ["Jest: uploadQueue retry logic", "Jest: image compression output size"],
+      "acceptance": ["Selfie preview shows immediately after capture", "Failed uploads retry automatically", "expo-image displays cached images without flicker"]
+    },
+    {
+      "branch": "perf/animations",
+      "title": "PR4: Reanimated v2 rewrite for modals and transitions",
+      "summary": "Replace static celebration modal with animated entrance/exit via Reanimated. Add marker pop animation on task acceptance.",
+      "files": [
+        "MODIFY: src/screens/buyer/BuyerTaskScreen.tsx",
+        "MODIFY: src/screens/helper/HelperTaskScreen.tsx",
+        "MODIFY: package.json",
+        "NEW: src/ui/CelebrationModal.tsx",
+        "NEW: src/ui/AnimatedMarkerPop.tsx"
+      ],
+      "tests": ["Jest: CelebrationModal renders with entering animation prop"],
+      "acceptance": ["Celebration modal fades in/scales smoothly", "No JS-thread blocking during animations"]
+    },
+    {
+      "branch": "infra/ts-1",
+      "title": "PR5: TypeScript strictness, ESLint, Sentry, CI, and dev tooling",
+      "summary": "Strengthen tsconfig, add ESLint + Prettier, integrate Sentry error reporting, create GitHub Actions CI workflow, add PR template.",
+      "files": [
+        "MODIFY: tsconfig.json",
+        "MODIFY: package.json",
+        "NEW: .eslintrc.js",
+        "NEW: .prettierrc",
+        "NEW: jest.config.js",
+        "NEW: src/monitoring/sentry.ts",
+        "NEW: .github/workflows/ci.yml",
+        "NEW: .github/PULL_REQUEST_TEMPLATE.md",
+        "NEW: CONTRIBUTING.md"
+      ],
+      "tests": ["CI: lint passes", "CI: typecheck passes", "CI: jest passes"],
+      "acceptance": ["All PRs run CI automatically", "Sentry captures unhandled errors", "ESLint enforces consistent style"]
+    }
+  ],
+
+  "metrics": {
+    "coldStartTarget": "< 3s",
+    "frameRateTarget": ">= 55 FPS",
+    "jsThreadBlockingTarget": "< 5% time",
+    "bundleSizeTarget": "< 4MB gzipped",
+    "memoryLeakTarget": "No measurable leak over 30min session",
+    "crashRateTarget": "< 0.1%",
+    "uploadRetrySuccessTarget": ">= 99% after 1 retry",
+    "e2ePassRateTarget": ">= 95% on basic flows"
+  },
+
+  "rolloutPlan": {
+    "week0": "Audit + PR1 (quick-wins: memoization, FlatList, skeletons)",
+    "week1": "PR2 (maps) + PR3 (images) + enable Hermes verification",
+    "week2": "PR4 (animations rewrite with Reanimated)",
+    "week3": "PR5 (TypeScript strictness, Sentry, CI, E2E scaffolding)",
+    "week4": "Release canary via TestFlight/Internal Track, collect metrics, fix regressions, then production release"
+  }
+}
