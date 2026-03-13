@@ -1,0 +1,32 @@
+appId: com.helpinminutes.app
+---
+- launchApp
+- tapOn: "Skip"
+- assertVisible: "Book a Superheroo"
+- tapOn: "Book a Superheroo"
+- assertVisible: "Phone"
+- tapOn: "10-digit mobile number"
+- inputText: "7777777777"
+- tapOn: "Send OTP"
+- assertVisible: "Verify OTP"
+- copyTextFrom:
+    text: "Dev OTP: .*"
+- evalScript: "${output.code = maestro.copiedText.replace('Dev OTP: ', '').trim()}"
+- tapOn: "Enter OTP"
+- inputText: "${output.code}"
+- tapOn: "Verify"
+- assertVisible: "Create a task"
+- tapOn: "Example: Fix water purifier"
+- inputText: "Maestro Local E2E Task"
+- tapOn: "Example: \"Need immediate help fixing RO leakage\""
+- inputText: "This is an automated task created via Maestro"
+- tapOn: "Example: 30" # Wait, the placeholder for time might be different. Let's just tap under Expected time?
+# Let's see what the placeholder is. "Expected time (minutes)"
+# I'll just find the text field and input it.
+- tapOn: "Expected time (minutes)"
+- inputText: "30"
+- tapOn: "Budget (INR)"
+- inputText: "150"
+- tapOn: "Create task"
+- assertVisible: "Waiting for helpers..." # Need to check the real string for this
+- killApp
